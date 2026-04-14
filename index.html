@@ -1,0 +1,1651 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The Engineering Design Process in Robotics</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #07111f;
+        --bg-soft: #0d1a2d;
+        --panel: rgba(14, 28, 48, 0.78);
+        --panel-strong: rgba(18, 36, 62, 0.94);
+        --line: rgba(162, 201, 255, 0.18);
+        --text: #eef5ff;
+        --muted: #a8bbd4;
+        --accent: #57d6ff;
+        --accent-2: #8dffbf;
+        --accent-3: #ffd166;
+        --danger: #ff7b7b;
+        --shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+        --radius: 24px;
+        --max-width: 1180px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Manrope", sans-serif;
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(87, 214, 255, 0.16),
+            transparent 28%
+          ),
+          radial-gradient(
+            circle at top right,
+            rgba(141, 255, 191, 0.12),
+            transparent 24%
+          ),
+          linear-gradient(180deg, #07111f 0%, #091427 48%, #050c16 100%);
+        color: var(--text);
+        overflow-x: hidden;
+      }
+
+      @media (pointer: fine) {
+        body,
+        a,
+        button,
+        [role="button"] {
+          cursor: none;
+        }
+      }
+
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        background-size: 54px 54px;
+        mask-image: linear-gradient(
+          180deg,
+          rgba(0, 0, 0, 0.4),
+          transparent 85%
+        );
+      }
+
+      .cursor-reticle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 84px;
+        height: 84px;
+        pointer-events: none;
+        z-index: 20;
+        opacity: 0;
+        transform: translate3d(-50%, -50%, 0) scale(0.9);
+        transition:
+          opacity 0.2s ease,
+          transform 0.16s ease;
+        mix-blend-mode: screen;
+        will-change: left, top, transform;
+      }
+
+      .cursor-reticle.visible {
+        opacity: 0.9;
+      }
+
+      .cursor-reticle.is-clicked {
+        transform: translate3d(-50%, -50%, 0) scale(0.68);
+      }
+
+      .cursor-reticle svg {
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+        animation: slowSpin 6.5s linear infinite;
+        filter: drop-shadow(0 0 10px rgba(87, 214, 255, 0.28));
+      }
+
+      .cursor-reticle .reticle-shape {
+        stroke: rgba(238, 245, 255, 0.9);
+        stroke-width: 4;
+        fill: none;
+        stroke-linecap: square;
+      }
+
+      .cursor-reticle .reticle-dot {
+        fill: var(--accent);
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+      }
+
+      section {
+        width: min(calc(100% - 2rem), var(--max-width));
+        margin: 0 auto;
+        padding: 4.5rem 0;
+      }
+
+      .section-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.45rem 0.85rem;
+        border: 1px solid rgba(141, 255, 191, 0.24);
+        border-radius: 999px;
+        color: var(--accent-2);
+        font-size: 0.82rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(141, 255, 191, 0.08);
+      }
+
+      .hero-credit {
+        display: block;
+        margin-top: 0.9rem;
+        color: rgba(238, 245, 255, 0.72);
+        font-size: 0.95rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      .section-heading {
+        margin: 1rem 0 0.8rem;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(2rem, 4vw, 3.6rem);
+        line-height: 1.05;
+        letter-spacing: -0.04em;
+      }
+
+      .section-copy {
+        max-width: 700px;
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.05rem;
+        line-height: 1.8;
+      }
+
+      .hero {
+        min-height: 100vh;
+        display: grid;
+        align-items: center;
+        padding-top: 2rem;
+      }
+
+      .hero-grid {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .hero-copy p {
+        margin: 1rem 0 0;
+        max-width: 660px;
+        color: var(--muted);
+        font-size: 1.08rem;
+        line-height: 1.9;
+      }
+
+      .hero-title {
+        margin: 1rem 0 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(2.8rem, 6vw, 5.7rem);
+        line-height: 0.95;
+        letter-spacing: -0.06em;
+      }
+
+      .hero-subtitle {
+        margin-top: 1rem;
+        font-size: clamp(1.1rem, 2vw, 1.45rem);
+        color: #d9ecff;
+        font-weight: 600;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 2rem;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.95rem 1.35rem;
+        border-radius: 999px;
+        font-weight: 700;
+        transition:
+          transform 0.25s ease,
+          box-shadow 0.25s ease,
+          background 0.25s ease;
+      }
+
+      .button-primary {
+        background: linear-gradient(135deg, var(--accent), #4ba3ff);
+        color: #04111d;
+        box-shadow: 0 16px 36px rgba(87, 214, 255, 0.28);
+      }
+
+      .button-secondary {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: var(--text);
+      }
+
+      .button:hover {
+        transform: translateY(-3px);
+      }
+
+      .particle-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+        z-index: 18;
+      }
+
+      .mascot-particle {
+        position: fixed;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        user-select: none;
+        will-change: transform, opacity;
+        animation: mascotFall var(--fall-duration, 1800ms) ease-in forwards;
+        animation-delay: var(--fall-delay, 0ms);
+        filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.22));
+      }
+
+      .hero-panel {
+        position: relative;
+        padding: 1.4rem;
+        border-radius: 28px;
+        border: 1px solid var(--line);
+        background: linear-gradient(
+          180deg,
+          rgba(16, 32, 54, 0.92),
+          rgba(10, 22, 38, 0.72)
+        );
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+
+      .hero-panel::before,
+      .hero-panel::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        filter: blur(10px);
+      }
+
+      .hero-panel::before {
+        top: -40px;
+        right: -30px;
+        width: 140px;
+        height: 140px;
+        background: rgba(87, 214, 255, 0.18);
+      }
+
+      .hero-panel::after {
+        bottom: -50px;
+        left: -30px;
+        width: 160px;
+        height: 160px;
+        background: rgba(141, 255, 191, 0.16);
+      }
+
+      .mini-dashboard {
+        position: relative;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .dashboard-card {
+        position: relative;
+        padding: 1.2rem;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        backdrop-filter: blur(12px);
+      }
+
+      .dashboard-card h3,
+      .dashboard-card p {
+        margin: 0;
+      }
+
+      .dashboard-card p {
+        margin-top: 0.55rem;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .dashboard-metrics {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .metric {
+        padding: 1rem;
+        border-radius: 18px;
+        background: rgba(9, 18, 32, 0.66);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 1.8rem;
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .metric span {
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+
+      .process-layout {
+        display: grid;
+        grid-template-columns: 1fr 0.95fr;
+        gap: 2rem;
+        align-items: center;
+        margin-top: 2.5rem;
+      }
+
+      .cycle-shell {
+        --orbit-radius: 224px;
+        position: relative;
+        width: min(100%, 620px);
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+        border-radius: 50%;
+        border: 1px solid rgba(87, 214, 255, 0.12);
+        background:
+          radial-gradient(
+            circle at center,
+            rgba(87, 214, 255, 0.14),
+            transparent 34%
+          ),
+          radial-gradient(
+            circle at center,
+            rgba(141, 255, 191, 0.08),
+            transparent 56%
+          );
+      }
+
+      .cycle-shell::before {
+        content: "";
+        position: absolute;
+        inset: 10%;
+        border-radius: 50%;
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        z-index: 0;
+      }
+
+      .cycle-center {
+        position: absolute;
+        inset: 24%;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        border-radius: 50%;
+        padding: 1.45rem 1.15rem;
+        background: radial-gradient(
+          circle at top,
+          rgba(87, 214, 255, 0.24),
+          rgba(11, 23, 40, 0.94)
+        );
+        border: 1px solid rgba(87, 214, 255, 0.28);
+        box-shadow:
+          0 0 0 14px rgba(87, 214, 255, 0.05),
+          0 18px 40px rgba(0, 0, 0, 0.2);
+        z-index: 1;
+      }
+
+      .cycle-center-content {
+        display: grid;
+        justify-items: center;
+        gap: 0.7rem;
+        max-width: 250px;
+        opacity: 1;
+        transform: translateY(0);
+        transition:
+          opacity 0.24s ease,
+          transform 0.24s ease;
+      }
+
+      .cycle-center.is-switching .cycle-center-content {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      .center-step-num {
+        display: inline-grid;
+        place-items: center;
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 18px;
+        background: linear-gradient(
+          135deg,
+          rgba(141, 255, 191, 0.22),
+          rgba(87, 214, 255, 0.18)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: var(--accent);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.55rem;
+        font-weight: 700;
+      }
+
+      .center-step-title {
+        margin: 0;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: clamp(1.16rem, 1.9vw, 1.62rem);
+        line-height: 1.18;
+        letter-spacing: -0.04em;
+      }
+
+      .center-step-copy {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.94rem;
+        line-height: 1.78;
+      }
+
+      .cycle-step {
+        --angle: 0deg;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 74px;
+        height: 74px;
+        display: grid;
+        place-items: center;
+        border-radius: 24px;
+        z-index: 2;
+        transform: translate(-50%, -50%) rotate(var(--angle))
+          translateY(calc(-1 * var(--orbit-radius)))
+          rotate(calc(-1 * var(--angle)));
+        background: linear-gradient(
+          180deg,
+          rgba(20, 40, 66, 0.92),
+          rgba(10, 20, 35, 0.9)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: 0 18px 36px rgba(0, 0, 0, 0.2);
+        transition:
+          transform 0.3s ease,
+          border-color 0.3s ease,
+          box-shadow 0.3s ease,
+          background 0.3s ease;
+      }
+
+      .cycle-step .icon {
+        display: inline-grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 16px;
+        background: rgba(87, 214, 255, 0.12);
+        color: #dff7ff;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .cycle-step.active {
+        border-color: rgba(141, 255, 191, 0.45);
+        background: linear-gradient(
+          180deg,
+          rgba(34, 74, 118, 0.98),
+          rgba(13, 31, 52, 0.96)
+        );
+        box-shadow:
+          0 0 0 6px rgba(87, 214, 255, 0.1),
+          0 22px 50px rgba(87, 214, 255, 0.2);
+        transform: translate(-50%, -50%) rotate(var(--angle))
+          translateY(calc(-1 * var(--orbit-radius)))
+          rotate(calc(-1 * var(--angle))) scale(1.08);
+      }
+
+      .loop-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .loop-svg path {
+        fill: none;
+        stroke: rgba(87, 214, 255, 0.68);
+        stroke-width: 3;
+        stroke-linecap: round;
+        stroke-dasharray: 10 12;
+        animation: dash 12s linear infinite;
+        filter: drop-shadow(0 0 8px rgba(87, 214, 255, 0.3));
+      }
+
+      .step-list {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .step-list .step-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        padding: 1rem 1.1rem;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.045);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        width: 100%;
+        text-align: left;
+        color: inherit;
+        cursor: pointer;
+        transition:
+          transform 0.25s ease,
+          border-color 0.25s ease,
+          background 0.25s ease,
+          box-shadow 0.25s ease;
+      }
+
+      .step-list .step-row:hover {
+        transform: translateX(8px);
+        border-color: rgba(141, 255, 191, 0.28);
+        background: rgba(255, 255, 255, 0.075);
+      }
+
+      .step-list button.step-row {
+        font: inherit;
+        appearance: none;
+        outline: none;
+      }
+
+      .step-list .step-row > div:last-child {
+        display: flex;
+        align-items: center;
+        min-height: 100%;
+      }
+
+      .step-list .step-row.active {
+        background: linear-gradient(
+          180deg,
+          rgba(24, 47, 77, 0.96),
+          rgba(11, 22, 38, 0.9)
+        );
+        border-color: rgba(87, 214, 255, 0.34);
+        box-shadow: 0 18px 36px rgba(87, 214, 255, 0.12);
+      }
+
+      .step-number {
+        display: inline-grid;
+        place-items: center;
+        width: 2.2rem;
+        height: 2.2rem;
+        border-radius: 999px;
+        background: linear-gradient(
+          135deg,
+          rgba(141, 255, 191, 0.22),
+          rgba(87, 214, 255, 0.16)
+        );
+        color: var(--accent-2);
+        font-weight: 800;
+      }
+
+      .step-row h4,
+      .step-row p {
+        margin: 0;
+      }
+
+      .step-row p {
+        margin-top: 0.35rem;
+        color: var(--muted);
+        line-height: 1.7;
+      }
+
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.35rem;
+        margin-top: 2.4rem;
+      }
+
+      .card {
+        padding: 1.4rem;
+        border-radius: var(--radius);
+        background: linear-gradient(
+          180deg,
+          rgba(17, 31, 53, 0.88),
+          rgba(10, 20, 35, 0.85)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.3s ease,
+          border-color 0.3s ease;
+      }
+
+      .card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(87, 214, 255, 0.26);
+      }
+
+      .card h3,
+      .card h4,
+      .card p {
+        margin: 0;
+      }
+
+      .card p {
+        color: var(--muted);
+        line-height: 1.75;
+        margin-top: 0.65rem;
+      }
+
+      .chip-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.7rem;
+        margin-top: 1rem;
+      }
+
+      .chip {
+        padding: 0.65rem 0.9rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: #d9ecff;
+        font-size: 0.94rem;
+      }
+
+      .flow-section {
+        margin-top: 2.4rem;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 1rem;
+        align-items: stretch;
+      }
+
+      .flow-card {
+        position: relative;
+        padding: 1.45rem;
+        border-radius: 22px;
+        background: linear-gradient(
+          180deg,
+          rgba(20, 37, 61, 0.92),
+          rgba(9, 18, 31, 0.84)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-height: 180px;
+      }
+
+      .flow-card.failure {
+        border-color: rgba(255, 123, 123, 0.28);
+      }
+
+      .flow-card.fix {
+        border-color: rgba(255, 209, 102, 0.28);
+      }
+
+      .flow-card.improved {
+        border-color: rgba(141, 255, 191, 0.28);
+      }
+
+      .flow-arrow {
+        display: grid;
+        place-items: center;
+        color: var(--accent);
+        font-size: 2rem;
+        opacity: 0.88;
+        animation: pulse 2.8s ease-in-out infinite;
+      }
+
+      .flow-wrapper {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 2.4rem;
+      }
+
+      .chart {
+        margin-top: 2.4rem;
+        padding: 1.2rem;
+        border-radius: 28px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(255, 255, 255, 0.04);
+        overflow: hidden;
+      }
+
+      .chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+      }
+
+      .chart-column {
+        padding: 1.3rem;
+        border-radius: 22px;
+        min-height: 100%;
+        background: linear-gradient(
+          180deg,
+          rgba(18, 34, 58, 0.94),
+          rgba(9, 18, 32, 0.88)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .chart-column h3 {
+        margin: 0 0 1rem;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.35rem;
+      }
+
+      .chart-column ul {
+        margin: 0;
+        padding-left: 1.1rem;
+        color: var(--muted);
+        line-height: 2;
+      }
+
+      .chart-column.criteria h3 {
+        color: var(--accent-2);
+      }
+
+      .chart-column.constraints h3 {
+        color: var(--accent-3);
+      }
+
+      .vocab-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1.2rem;
+        margin-top: 2.4rem;
+      }
+
+      .vocab-card {
+        padding: 1.35rem;
+        border-radius: 22px;
+        background: linear-gradient(
+          180deg,
+          rgba(18, 34, 58, 0.94),
+          rgba(9, 18, 32, 0.88)
+        );
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.3s ease,
+          border-color 0.3s ease;
+      }
+
+      .vocab-card:hover {
+        transform: translateY(-6px);
+        border-color: rgba(141, 255, 191, 0.26);
+      }
+
+      .vocab-card h3,
+      .vocab-card p {
+        margin: 0;
+      }
+
+      .vocab-card h3 {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1.18rem;
+        color: #eaf4ff;
+      }
+
+      .vocab-card p {
+        margin-top: 0.65rem;
+        color: var(--muted);
+        line-height: 1.8;
+      }
+
+      .feedback-panel {
+        position: relative;
+        margin-top: 2.4rem;
+        padding: 1.6rem;
+        border-radius: 28px;
+        border: 1px solid rgba(87, 214, 255, 0.18);
+        background:
+          radial-gradient(
+            circle at top left,
+            rgba(87, 214, 255, 0.12),
+            transparent 30%
+          ),
+          linear-gradient(180deg, rgba(14, 29, 49, 0.94), rgba(9, 18, 32, 0.9));
+        overflow: hidden;
+      }
+
+      .feedback-panel::after {
+        content: "";
+        position: absolute;
+        inset: auto -70px -70px auto;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background: rgba(141, 255, 191, 0.08);
+        filter: blur(6px);
+      }
+
+      .feedback-visual {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        margin-top: 1.4rem;
+      }
+
+      .feedback-box {
+        padding: 1.2rem;
+        border-radius: 22px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        min-height: 120px;
+      }
+
+      .feedback-loop {
+        position: relative;
+        width: 92px;
+        height: 92px;
+        border-radius: 50%;
+        border: 2px dashed rgba(87, 214, 255, 0.45);
+        animation: spin 12s linear infinite;
+      }
+
+      .feedback-loop::before,
+      .feedback-loop::after {
+        content: "";
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        border-top: 3px solid var(--accent);
+        border-right: 3px solid var(--accent);
+        right: 4px;
+      }
+
+      .feedback-loop::before {
+        top: 14px;
+        transform: rotate(44deg);
+      }
+
+      .feedback-loop::after {
+        bottom: 14px;
+        left: 4px;
+        right: auto;
+        transform: rotate(224deg);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(28px);
+        transition:
+          opacity 0.8s ease,
+          transform 0.8s ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      footer {
+        width: min(calc(100% - 2rem), var(--max-width));
+        margin: 0 auto;
+        padding: 0 0 2.6rem;
+        color: rgba(238, 245, 255, 0.6);
+        font-size: 0.95rem;
+      }
+
+      @keyframes dash {
+        to {
+          stroke-dashoffset: -180;
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.7;
+        }
+        50% {
+          transform: scale(1.08);
+          opacity: 1;
+        }
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes slowSpin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes mascotFall {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, -8px, 0) rotate(0deg) scale(0.92);
+        }
+        10% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: translate3d(
+              var(--drift-x, 0px),
+              var(--fall-distance, 340px),
+              0
+            )
+            rotate(var(--rotate-end, 180deg)) scale(1);
+        }
+      }
+
+      @media (max-width: 1100px) {
+        .hero-grid,
+        .process-layout,
+        .cards-grid,
+        .chart-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-wrapper,
+        .feedback-visual {
+          grid-template-columns: 1fr;
+        }
+
+        .flow-arrow {
+          transform: rotate(90deg);
+        }
+
+        .cycle-step {
+          width: 68px;
+          height: 68px;
+        }
+      }
+
+      @media (max-width: 760px) {
+        section {
+          padding: 3.5rem 0;
+        }
+
+        .hero {
+          min-height: auto;
+        }
+
+        .hero-actions {
+          flex-direction: column;
+          align-items: stretch;
+        }
+
+        .dashboard-metrics {
+          grid-template-columns: 1fr;
+        }
+
+        .vocab-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .cycle-shell {
+          --orbit-radius: 168px;
+          width: min(100%, 420px);
+        }
+
+        .cycle-center {
+          inset: 28%;
+        }
+
+        .cycle-step {
+          width: 58px;
+          height: 58px;
+          transform: translate(-50%, -50%) rotate(var(--angle))
+            translateY(calc(-1 * var(--orbit-radius)))
+            rotate(calc(-1 * var(--angle)));
+        }
+
+        .cycle-step .icon {
+          width: 2.3rem;
+          height: 2.3rem;
+          font-size: 1rem;
+        }
+
+        .center-step-title {
+          font-size: 1.2rem;
+        }
+
+        .center-step-copy {
+          font-size: 0.88rem;
+        }
+
+        .chart {
+          padding: 0.9rem;
+        }
+      }
+
+      @media (max-width: 520px) {
+        .section-heading {
+          font-size: 2rem;
+        }
+
+        .hero-title {
+          font-size: 2.8rem;
+        }
+
+        .cycle-shell {
+          --orbit-radius: 132px;
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.03);
+        }
+
+        .cycle-center {
+          inset: 24%;
+          padding: 1rem 0.85rem;
+        }
+
+        .cycle-step {
+          width: 50px;
+          height: 50px;
+        }
+
+        .cycle-step .icon {
+          width: 2rem;
+          height: 2rem;
+          font-size: 0.92rem;
+        }
+
+        .center-step-num {
+          width: 2.7rem;
+          height: 2.7rem;
+          font-size: 1.3rem;
+        }
+
+        .center-step-title {
+          font-size: 1rem;
+        }
+
+        .center-step-copy {
+          font-size: 0.82rem;
+          line-height: 1.65;
+        }
+      }
+
+      @media (pointer: coarse) {
+        .cursor-reticle {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cursor-reticle" aria-hidden="true">
+      <svg viewBox="0 0 84 84">
+        <path class="reticle-shape" d="M25 11 L14 19 L14 31" />
+        <path class="reticle-shape" d="M59 11 L70 19 L70 31" />
+        <path class="reticle-shape" d="M25 73 L14 65 L14 53" />
+        <path class="reticle-shape" d="M59 73 L70 65 L70 53" />
+        <circle class="reticle-dot" cx="42" cy="42" r="3.5" />
+      </svg>
+    </div>
+    <div
+      class="particle-overlay"
+      id="particle-overlay"
+      aria-hidden="true"
+    ></div>
+    <main>
+      <section class="hero">
+        <div class="hero-grid">
+          <div class="hero-copy reveal">
+            <span class="section-tag">Robotics Project</span>
+            <span class="hero-credit">Made by Anderson Wang</span>
+            <h1 class="hero-title">
+              The Engineering Design Process in Robotics
+            </h1>
+            <div class="hero-subtitle">
+              How engineers design, test, and improve robots
+            </div>
+            <p>
+              Engineers follow a step-by-step process to solve problems and
+              improve designs. The Engineering Design Process helps engineers
+              solve problems by testing ideas and improving solutions over time.
+              In robotics, that process helps teams create machines that can
+              sense, decide, and act in the real world with greater safety and
+              reliability.
+            </p>
+            <div class="hero-actions">
+              <a class="button button-primary" href="#process"
+                >Explore the Process</a
+              >
+              <a class="button button-secondary" href="#example"
+                >See the Self-Driving Car Example</a
+              >
+            </div>
+          </div>
+
+          <div class="hero-panel reveal">
+            <div class="mini-dashboard">
+              <div class="dashboard-card">
+                <h3>Why the process matters</h3>
+                <p>
+                  Robots usually don? work perfectly the first time, so
+                  engineers need to test and improve them. Engineers use
+                  feedback, testing, and iteration to make each version smarter
+                  and safer.
+                </p>
+              </div>
+              <div class="dashboard-metrics">
+                <div class="metric">
+                  <strong>6</strong>
+                  <span>Core stages in the cycle</span>
+                </div>
+                <div class="metric">
+                  <strong>Loop</strong>
+                  <span>Designs improve through repetition</span>
+                </div>
+              </div>
+              <div class="dashboard-card">
+                <h3>Focus in robotics</h3>
+                <p>
+                  Each design choice has to balance performance, safety, cost,
+                  and the limits of sensors, software, and hardware.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="process">
+        <span class="section-tag reveal">Design Cycle</span>
+        <h2 class="section-heading reveal">Engineering Design Process</h2>
+        <p class="section-copy reveal">
+          The engineering design process is a circular loop, not a one-time
+          checklist. Engineers move forward, test their ideas, learn from
+          mistakes, and return to earlier steps to improve the robot.
+        </p>
+
+        <div class="process-layout">
+          <div class="cycle-shell reveal">
+            <svg class="loop-svg" viewBox="0 0 100 100" aria-hidden="true">
+              <path d="M50,9 A41,41 0 1,1 49.9,9"></path>
+            </svg>
+
+            <div class="cycle-center">
+              <div class="cycle-center-content">
+                <div class="center-step-num" id="center-step-num">1</div>
+                <h3 class="center-step-title" id="center-step-title">
+                  Identify the Problem
+                </h3>
+                <p class="center-step-copy" id="center-step-copy">
+                  Engineers begin by clearly stating the task the robot must
+                  complete and what success will look like.
+                </p>
+              </div>
+            </div>
+
+            <article
+              class="cycle-step active"
+              data-step-orbit="1"
+              style="--angle: 0deg"
+            >
+              <div class="icon">1</div>
+            </article>
+
+            <article
+              class="cycle-step"
+              data-step-orbit="2"
+              style="--angle: 60deg"
+            >
+              <div class="icon">2</div>
+            </article>
+
+            <article
+              class="cycle-step"
+              data-step-orbit="3"
+              style="--angle: 120deg"
+            >
+              <div class="icon">3</div>
+            </article>
+
+            <article
+              class="cycle-step"
+              data-step-orbit="4"
+              style="--angle: 180deg"
+            >
+              <div class="icon">4</div>
+            </article>
+
+            <article
+              class="cycle-step"
+              data-step-orbit="5"
+              style="--angle: 240deg"
+            >
+              <div class="icon">5</div>
+            </article>
+
+            <article
+              class="cycle-step"
+              data-step-orbit="6"
+              style="--angle: 300deg"
+            >
+              <div class="icon">6</div>
+            </article>
+          </div>
+
+          <div class="step-list">
+            <button class="step-row reveal active" type="button" data-step="1">
+              <div class="step-number">1</div>
+              <div>
+                <h4>Identify the Problem</h4>
+              </div>
+            </button>
+            <button class="step-row reveal" type="button" data-step="2">
+              <div class="step-number">2</div>
+              <div>
+                <h4>Research the Problem</h4>
+              </div>
+            </button>
+            <button class="step-row reveal" type="button" data-step="3">
+              <div class="step-number">3</div>
+              <div>
+                <h4>Brainstorm Solutions</h4>
+              </div>
+            </button>
+            <button class="step-row reveal" type="button" data-step="4">
+              <div class="step-number">4</div>
+              <div>
+                <h4>Build a Prototype</h4>
+              </div>
+            </button>
+            <button class="step-row reveal" type="button" data-step="5">
+              <div class="step-number">5</div>
+              <div>
+                <h4>Test the Prototype</h4>
+              </div>
+            </button>
+            <button class="step-row reveal" type="button" data-step="6">
+              <div class="step-number">6</div>
+              <div>
+                <h4>Improve (Iterate)</h4>
+              </div>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section id="example">
+        <span class="section-tag reveal">Real-World Example</span>
+        <h2 class="section-heading reveal">Self-Driving Car</h2>
+        <p class="section-copy reveal">
+          A self-driving car is a robotics system that uses cameras, sensors,
+          maps, and AI to make decisions on the road. It is a strong example of
+          why engineering design must include testing, limits, and improvement
+          over time.
+        </p>
+
+        <div class="cards-grid">
+          <article class="card reveal">
+            <h3>Problem</h3>
+            <p>
+              Self-driving cars must safely transport people without human
+              drivers.
+            </p>
+          </article>
+
+          <article class="card reveal">
+            <h3>Constraints</h3>
+            <div class="chip-list">
+              <span class="chip">Cost</span>
+              <span class="chip">Safety regulations</span>
+              <span class="chip">Weather conditions</span>
+              <span class="chip">Sensor limitations</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <h3>Criteria</h3>
+            <p>
+              The car must be safe, accurate, and able to respond quickly to
+              road conditions.
+            </p>
+          </article>
+
+          <article class="card reveal">
+            <h3>What might go wrong</h3>
+            <div class="chip-list">
+              <span class="chip">Sensors fail</span>
+              <span class="chip">Misreading traffic signs</span>
+              <span class="chip">Bad weather affecting visibility</span>
+            </div>
+          </article>
+
+          <article class="card reveal">
+            <h3>Engineering response</h3>
+            <p>
+              Engineers collect new data, run more tests, and redesign the
+              system so the car can make better decisions in changing road
+              conditions.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="failure">
+        <span class="section-tag reveal">Failure & Improvement</span>
+        <h2 class="section-heading reveal">From Mistake to Better Design</h2>
+        <p class="section-copy reveal">
+          Failure is a normal part of the engineering process. Instead of
+          stopping after a mistake, engineers treat it as evidence that helps
+          them improve the next version of the robot.
+        </p>
+
+        <div class="flow-wrapper">
+          <article class="flow-card failure reveal">
+            <h3>Failure</h3>
+            <p>"The car misidentifies a stop sign."</p>
+          </article>
+          <div class="flow-arrow reveal">&rarr;</div>
+          <article class="flow-card fix reveal">
+            <h3>Fix</h3>
+            <p>"Engineers improve AI models and upgrade sensors."</p>
+          </article>
+          <div class="flow-arrow reveal">&rarr;</div>
+          <article class="flow-card improved reveal">
+            <h3>Improved Design</h3>
+            <p>
+              The updated car can recognize signs more accurately in different
+              lighting and weather conditions.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="compare">
+        <span class="section-tag reveal">Decision Making</span>
+        <h2 class="section-heading reveal">Criteria vs Constraints</h2>
+        <p class="section-copy reveal">
+          Engineers judge a robotics design in two ways: what it should achieve,
+          and what limits it must work within. Both guide the final solution.
+        </p>
+
+        <div class="chart reveal">
+          <div class="chart-grid">
+            <div class="chart-column criteria">
+              <h3>Criteria</h3>
+              <ul>
+                <li>Safe</li>
+                <li>Accurate</li>
+                <li>Fast response</li>
+                <li>Reliable</li>
+              </ul>
+            </div>
+            <div class="chart-column constraints">
+              <h3>Constraints</h3>
+              <ul>
+                <li>Budget</li>
+                <li>Time</li>
+                <li>Technology limits</li>
+                <li>Laws</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="feedback">
+        <span class="section-tag reveal">Feedback Loop</span>
+        <h2 class="section-heading reveal">Iteration Makes Robotics Better</h2>
+        <p class="section-copy reveal">
+          Engineers repeat the process to improve designs over time. Every test,
+          failure, and fix adds information that feeds back into the design
+          cycle and leads to a stronger robotics solution.
+        </p>
+
+        <div class="feedback-panel reveal">
+          <div class="feedback-visual">
+            <div class="feedback-box">
+              <h3>Test Results</h3>
+              <p>
+                Road tests, simulations, and sensor checks reveal where the
+                robot performs well and where it still struggles.
+              </p>
+            </div>
+            <div class="feedback-loop" aria-hidden="true"></div>
+            <div class="feedback-box">
+              <h3>Back to the Cycle</h3>
+              <p>
+                That feedback sends engineers back to research, redesign, and
+                rebuild so the next version works better than the last.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="vocabulary">
+        <span class="section-tag reveal">Key Vocabulary</span>
+        <h2 class="section-heading reveal">Glossary of Important Terms</h2>
+        <p class="section-copy reveal">
+          These definitions explain the most important engineering words used
+          throughout this robotics project.
+        </p>
+
+        <div class="vocab-grid">
+          <article class="vocab-card reveal">
+            <h3>Engineering Design Process (EDP)</h3>
+            <p>
+              A step-by-step process engineers use to solve problems, test
+              ideas, and improve designs.
+            </p>
+          </article>
+
+          <article class="vocab-card reveal">
+            <h3>Criteria</h3>
+            <p>
+              The goals or requirements a design must meet to be successful.
+            </p>
+          </article>
+
+          <article class="vocab-card reveal">
+            <h3>Constraints</h3>
+            <p>
+              The limits or restrictions on a design, such as time, budget, or
+              materials.
+            </p>
+          </article>
+
+          <article class="vocab-card reveal">
+            <h3>Prototype</h3>
+            <p>
+              A first model or sample of a design used for testing and
+              improvement.
+            </p>
+          </article>
+
+          <article class="vocab-card reveal">
+            <h3>Iteration</h3>
+            <p>Repeating the design process to make a product better.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="reveal">
+      穢 2026 AndxLab. Designed & Developed by Anderson Wang.
+    </footer>
+
+    <script>
+      const revealItems = document.querySelectorAll(".reveal");
+      const cursorReticle = document.querySelector(".cursor-reticle");
+      const processCenter = document.querySelector(".cycle-center");
+      const centerStepNum = document.querySelector("#center-step-num");
+      const centerStepTitle = document.querySelector("#center-step-title");
+      const centerStepCopy = document.querySelector("#center-step-copy");
+      const stepButtons = document.querySelectorAll(
+        ".step-list .step-row[data-step]",
+      );
+      const orbitSteps = document.querySelectorAll(
+        ".cycle-step[data-step-orbit]",
+      );
+      let processStepTimer;
+
+      const processSteps = [
+        {
+          number: "1",
+          title: "Identify the Problem",
+          description:
+            "Engineers begin by clearly stating the task the robot must complete and what success will look like.",
+        },
+        {
+          number: "2",
+          title: "Research the Problem",
+          description:
+            "They gather information about user needs, science concepts, safety issues, and similar robotics systems.",
+        },
+        {
+          number: "3",
+          title: "Brainstorm Solutions",
+          description:
+            "Teams compare possible designs and choose features that best meet the robot's goals.",
+        },
+        {
+          number: "4",
+          title: "Build a Prototype",
+          description:
+            "A prototype turns the idea into something real that can be tested with hardware and software.",
+        },
+        {
+          number: "5",
+          title: "Test the Prototype",
+          description:
+            "Testing shows whether the robot works correctly and reveals weak points in the design.",
+        },
+        {
+          number: "6",
+          title: "Improve (Iterate)",
+          description:
+            "Engineers repeat the cycle to refine the robot until it performs more safely and effectively.",
+        },
+      ];
+
+      const revealObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              revealObserver.unobserve(entry.target);
+            }
+          });
+        },
+        {
+          threshold: 0.16,
+          rootMargin: "0px 0px -40px 0px",
+        },
+      );
+
+      revealItems.forEach((item, index) => {
+        item.style.transitionDelay = `${Math.min(index * 40, 280)}ms`;
+        revealObserver.observe(item);
+      });
+
+      const setActiveProcessStep = (stepNumber) => {
+        const step = processSteps[stepNumber - 1];
+        if (
+          !step ||
+          !processCenter ||
+          !centerStepNum ||
+          !centerStepTitle ||
+          !centerStepCopy
+        ) {
+          return;
+        }
+
+        stepButtons.forEach((button) => {
+          button.classList.toggle(
+            "active",
+            Number(button.dataset.step) === stepNumber,
+          );
+        });
+
+        orbitSteps.forEach((item) => {
+          item.classList.toggle(
+            "active",
+            Number(item.dataset.stepOrbit) === stepNumber,
+          );
+        });
+
+        processCenter.classList.add("is-switching");
+        clearTimeout(processStepTimer);
+
+        processStepTimer = window.setTimeout(() => {
+          centerStepNum.textContent = step.number;
+          centerStepTitle.textContent = step.title;
+          centerStepCopy.textContent = step.description;
+          processCenter.classList.remove("is-switching");
+        }, 140);
+      };
+
+      stepButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          setActiveProcessStep(Number(button.dataset.step));
+        });
+      });
+
+      setActiveProcessStep(1);
+
+      if (cursorReticle && window.matchMedia("(pointer: fine)").matches) {
+        let clickTimer;
+
+        window.addEventListener("mousemove", (event) => {
+          cursorReticle.style.left = `${event.clientX}px`;
+          cursorReticle.style.top = `${event.clientY}px`;
+          cursorReticle.classList.add("visible");
+        });
+
+        window.addEventListener("mousedown", () => {
+          cursorReticle.classList.add("is-clicked");
+          clearTimeout(clickTimer);
+          clickTimer = setTimeout(() => {
+            cursorReticle.classList.remove("is-clicked");
+          }, 140);
+        });
+
+        window.addEventListener("mouseup", () => {
+          cursorReticle.classList.remove("is-clicked");
+        });
+
+        window.addEventListener("mouseleave", () => {
+          cursorReticle.classList.remove("visible");
+          cursorReticle.classList.remove("is-clicked");
+        });
+      }
+    </script>
+  </body>
+</html>
+
+
