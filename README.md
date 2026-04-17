@@ -67,7 +67,3 @@ I built this project to:
 Anderson Wang  
 High School Student | Interested in Robotics & Entrepreneurship  
 
----
-
-##  License
-This project is open source and available under the MIT License.
